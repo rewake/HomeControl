@@ -2,7 +2,6 @@
 
 from gpiozero import OutputDevice
 from gpiozero import Button
-from gpiozero import LED
 from rewake import TempSensor
 from time import *
 import time

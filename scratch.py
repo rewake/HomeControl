@@ -1,11 +1,6 @@
 import time
 import datetime
-import pymongo
-from pprint import pprint
-
-# Setup DB connection
-client = pymongo.MongoClient()
-db = client['iot']
+from dynamodb.iot import Schedules
 
 globals()['mode'] = 0
 globals()['temp'] = 72
@@ -16,7 +11,9 @@ globals()['modes'] = {
     2: "Always On"
 }
 
-globals()['schedule'] = []
+globals()['schedule'] = Schedules().get('ac')
+
+dbg = True;
 
 '''
 NOTES / TODOs
@@ -38,19 +35,6 @@ def set_mode(mode):
 def set_temp(temp):
     print "Setting temp to: " + str(temp)
     globals()['temp'] = temp
-
-
-def load_schedule():
-
-    # Load schedules
-    schedule_cursor = list(db['schedule'].find({"group": "ac"}).sort('time', pymongo.DESCENDING))
-
-    schedule = []
-
-    for event in schedule_cursor:
-        schedule.append(event)
-
-    return schedule
 
 
 def cycle_mode():
@@ -98,10 +82,6 @@ def determine_desired_settings():
             break
 
     return new_mode, new_temp
-
-
-# Load schedule
-globals()['schedule'] = load_schedule()
 
 
 # Run program
