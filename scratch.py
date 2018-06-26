@@ -11,7 +11,7 @@ globals()['modes'] = {
     2: "Always On"
 }
 
-globals()['schedule'] = Schedules().get('ac')
+globals()['schedule'] = Schedules().get_by_group('ac')
 
 dbg = True;
 
