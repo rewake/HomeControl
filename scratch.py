@@ -1,8 +1,22 @@
+from time import *
 import time
 import datetime
+from gpiozero import OutputDevice
+from devices import TempSensor
 from dynamodb.iot import Schedules
+from pprint import pprint
+import logging
+import sys
 
-globals()['mode'] = 0
+# Configure logging
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+
+# Setup Devices
+ac = OutputDevice(14)
+ts = TempSensor()
+
+# Initial configuration values
+globals()['mode'] = int(ac.value)
 globals()['temp'] = 72
 
 globals()['modes'] = {
@@ -11,9 +25,8 @@ globals()['modes'] = {
     2: "Always On"
 }
 
-globals()['schedule'] = Schedules().get_by_group('ac')
+globals()['schedule'] = Schedules().get_by_attribute('group', 'ac')
 
-dbg = True;
 
 '''
 NOTES / TODOs
@@ -54,6 +67,24 @@ def cycle_mode():
     print "AC Mode: " + globals()['modes'][globals()['mode']]
 
 
+# TODO: these probably belong in AC class, after all
+def ac_on():
+    print "Turning AC On"
+    # led.on()
+    ac.on()
+
+
+def ac_off():
+    print "Turning AC Off"
+    # led.off()
+    ac.off()
+
+
+def ac_auto():
+    print("AC Auto Mode")
+    # led.blink()
+
+
 def determine_desired_settings():
 
     for event in globals()['schedule']:
@@ -91,8 +122,6 @@ while True:
 
     print str(mode) + ' / ' + str(temp)
 
-# TODO : initial AC state
-
     if globals()['mode'] != mode:
         print "Setting mode to: " + str(mode)
         set_mode(mode)
@@ -101,5 +130,31 @@ while True:
         print "Setting mode to: " + str(temp)
         set_temp(temp)
 
-    # set_mode()
-    time.sleep(20)
+    #
+    # AC should be Off
+    #
+    if globals()['mode'] == 0:
+        if ac.value:
+            ac_off()
+
+    # AC should be Auto, which reads current temp and adjusts accordingly
+    elif globals()['mode'] == 1:
+        current_temp = ts.fahrenheit()
+        print strftime('%x %X') + " Temp: " + str(current_temp)
+
+        # See if temp is BELOW desired LOW temp
+        if current_temp < globals()['temp']:
+            if ac.value is True:
+                ac_off()
+
+        # See if temp is ABOVE desired HIGH temp
+        if current_temp > globals()['temp']:
+            if ac.value is False:
+                ac_on()
+
+    # AC should be On
+    elif globals()['mode'] == 2:
+        if not ac.value:
+            ac_on()
+
+    time.sleep(10)

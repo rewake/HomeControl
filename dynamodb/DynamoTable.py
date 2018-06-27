@@ -12,12 +12,15 @@ class DynamoTable:
     def get_all(self):
         return self.table.scan()
 
-    def get_by_group(self, group):
+    def get_by_attribute(self, attr, group):
         """
         Search for schedules based on group
+        :param attr:
         :param group:
         :return:
         """
-        return self.table.query(
-            KeyConditionExpression=Key('group').eq(group)
-        )
+        print "Scanning by attribute: " + attr + " = " + group
+
+        return self.table.scan(
+            FilterExpression=Attr(attr).eq(group)
+        )['Items']
