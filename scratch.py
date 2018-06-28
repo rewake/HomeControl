@@ -1,9 +1,10 @@
 from time import *
 import time
 import datetime
-from gpiozero import OutputDevice
 from devices import TempSensor
+from devices import AirConditioner
 from dynamodb.iot import Schedules
+from gpiozero import BadPinFactory
 from pprint import pprint
 import logging
 import sys
@@ -12,7 +13,7 @@ import sys
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 # Setup Devices
-ac = OutputDevice(14)
+ac = AirConditioner(14)
 ts = TempSensor()
 
 # Initial configuration values
@@ -26,7 +27,6 @@ globals()['modes'] = {
 }
 
 globals()['schedule'] = Schedules().get_by_attribute('group', 'ac')
-
 
 '''
 NOTES / TODOs
@@ -51,7 +51,6 @@ def set_temp(temp):
 
 
 def cycle_mode():
-
     # Off to Auto
     if globals()['mode'] == 0:
         set_mode(1)
@@ -67,26 +66,25 @@ def cycle_mode():
     print "AC Mode: " + globals()['modes'][globals()['mode']]
 
 
-# TODO: these probably belong in AC class, after all
-def ac_on():
-    print "Turning AC On"
-    # led.on()
-    ac.on()
-
-
-def ac_off():
-    print "Turning AC Off"
-    # led.off()
-    ac.off()
-
-
-def ac_auto():
-    print("AC Auto Mode")
-    # led.blink()
+# # TODO: these probably belong in AC class, after all
+# def ac_on():
+#     print "Turning AC On"
+#     # led.on()
+#     ac.on()
+#
+#
+# def ac_off():
+#     print "Turning AC Off"
+#     # led.off()
+#     ac.off()
+#
+#
+# def ac_auto():
+#     print("AC Auto Mode")
+#     # led.blink()
 
 
 def determine_desired_settings():
-
     for event in globals()['schedule']:
 
         schedule_time = datetime.datetime.strptime(event['time'], "%H:%M").time()

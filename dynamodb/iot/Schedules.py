@@ -8,4 +8,5 @@ class Schedules(DynamoTable):
     """
 
     def __init__(self):
-        DynamoTable.__init__(self, 'iot.schedules')
+        super(Schedules, self).__init__('iot.schedules')
+        # DynamoTable.__init__(self, 'iot.schedules')
