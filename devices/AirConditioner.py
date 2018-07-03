@@ -7,15 +7,18 @@ print BadPinFactory.message
 import logging
 
 
-class AirConditioner():
+class AirConditioner(OutputDevice):
     """
     Air conditioner controller class
     """
 
-    # Constants
+    # Modes
     OFF = 0
     ON = 1
     AUTO = 2
+
+    # Instantiate current mode as "OFF"
+    mode = OFF
 
     def __init__(self, pin):
         super(OutputDevice, self).__init__(pin)
@@ -29,3 +32,13 @@ class AirConditioner():
 
         logging.debug("Turning AC Off")
         super(AirConditioner, self).off()
+
+    def set_mode(self, mode=None):
+
+        if mode is not None:
+
+            logging.debug("Setting mode to: " + self.mode)
+            self.mode = mode
+
+        logging.debug("Current mode is: " + self.mode)
+        return self.mode

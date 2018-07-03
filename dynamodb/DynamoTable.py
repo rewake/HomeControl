@@ -1,7 +1,8 @@
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
-class DynamoTable:
+
+class DynamoTable(object):
     """
 
     """
@@ -22,5 +23,5 @@ class DynamoTable:
         print "Scanning by attribute: " + attr + " = " + group
 
         return self.table.scan(
-            FilterExpression=Attr(attr).eq(group)
+            FilterExpression=Attr(attr).eq(group) and Attr('mode').eq(0)
         )['Items']
