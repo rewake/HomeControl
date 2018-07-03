@@ -1,35 +1,29 @@
 from time import *
 import time
-import datetime
+from datetime import datetime
 from devices import TempSensor
 from devices import AirConditioner
 from dynamodb.iot import Schedules
-from gpiozero import BadPinFactory
-from pprint import pprint
 import logging
 import sys
 
 # Configure logging
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
-# Setup Devices
+# Setup devices
 ac = AirConditioner(14)
 ts = TempSensor()
 
-# Initial configuration values
-ac.mode = int(ac.value)
-globals()['temp'] = 72
+# Default settings
+default_mode = ac.OFF
+default_temp = 72
 
-
-# TODO: pull schedule just for today
-globals()['schedule'] = sorted(Schedules().get_by_attribute('group', 'ac'), key=lambda k: ['time'])
+# Polling interval in seconds
+poll_interval = 10
 
 
 '''
 NOTES / TODOs
-
-so, aside from being able to control the modes via schedule, we should also
-be able to set the temp using the schedule as well.  
 
 also, the schedule table here is generic, however, the collection docs refer specifically to AC schedule, 
 so I'll prob have to re-think this in time
@@ -38,100 +32,89 @@ need to think about invalidating loaded schedule
 '''
 
 
-def set_temp(temp):
-    print "Setting temp to: " + str(temp)
-    globals()['temp'] = temp
-
-
-def cycle_mode():
-
-    # Off to Auto
-    if ac.mode == 0:
-        ac.set_mode(ac.AUTO)
-
-    # Auto to On
-    elif ac.mode == 1:
-        ac.set_mode(ac.ON)
-
-    # On to Off
-    elif ac.mode == 2:
-        ac.set_mode(ac.OFF)
-
-    print "AC Mode: " + ac.mode
-
-
 def determine_desired_settings():
 
-    for event in globals()['schedule']:
+    # Get today's schedule from DB
+    schedule = Schedules().today('ac')
+
+    # Set new values to default values, to be overwritten by schedule
+    new_mode = default_mode
+    new_temp = default_temp
+
+    # Loop scheduled events
+    for event in schedule:
 
         # Convert schedule time string to datetime
-        schedule_time = datetime.datetime.strptime(event['time'], "%H:%M").time()
-        d = datetime.datetime.combine(datetime.datetime.today(), schedule_time)
+        schedule_time = datetime.strptime(event['time'], "%H:%M").time()
+        d = datetime.combine(datetime.today(), schedule_time)
 
-        # Set new values to current values, to be overwritten if necessary
-        new_mode = ac.mode
-        new_temp = globals()['temp']
-
-        # Determine desired mode
-        if d <= datetime.datetime.now():
+        '''
+        If event datetime is in the past, we'll consider the current event as active, and it will be selected for use.
+        
+        NOTE: this logic is dependant on the chronological order of events set in the schedule
+        '''
+        if d <= datetime.now():
 
             # Log info
             logging.debug("The following schedule was selected: ")
             logging.debug(event)
 
-            # Use settings from schedule
-            new_mode = event['mode']
+            # See if mode should be updated based on schedule
+            if 'mode' in event and event['mode'] != ac.mode:
+
+                # Set mode to event mode
+                new_mode = event['mode']
 
             # See if temperature should be updated based on schedule
             if 'temp' in event and event['temp'] != new_temp:
 
+                # Set temp to event temp
                 new_temp = event['temp']
 
+            # Break loop - no need to check other events in the schedule
             break
 
+    # Return desired mode and temperature
     return new_mode, new_temp
 
 
 # Run program
 while True:
 
-    mode, temp = determine_desired_settings()
+    # Get desired settings
+    desired_mode, desired_temp = determine_desired_settings()
 
-    print str(mode) + ' / ' + str(temp)
+    logging.info(str(desired_mode) + ' / ' + str(desired_temp))
 
-    if ac.mode != mode:
-        print "Setting mode to: " + str(mode)
-        ac.set_mode(mode)
+    # Set AC mode to desired mode
+    if ac.mode != desired_mode:
+        print "Setting mode to: " + str(desired_mode)
+        ac.set_mode(desired_mode)
 
-    if globals()['temp'] != temp:
-        print "Setting mode to: " + str(temp)
-        set_temp(temp)
+    # If AC mode is AUTO, we need to monitor the temperature and adjust the AC mode automatically
+    if ac.mode == ac.AUTO:
 
-    #
-    # AC should be Off
-    #
-    if ac.mode == 0:
-        if ac.value:
-            ac.on()
-
-    # AC should be Auto, which reads current temp and adjusts accordingly
-    elif ac.mode == 1:
+        # Get current temp
         current_temp = ts.fahrenheit()
         print strftime('%x %X') + " Temp: " + str(current_temp)
 
         # See if temp is BELOW desired LOW temp
-        if current_temp < globals()['temp']:
-            if ac.value is True:
+        if current_temp < desired_temp:
+
+            # Check current AC mode
+            if ac.mode is not ac.OFF:
+
+                # Turn AC off
                 ac.off()
 
         # See if temp is ABOVE desired HIGH temp
-        if current_temp > globals()['temp']:
-            if ac.value is False:
+        if current_temp > desired_temp:
+
+            # Check current AC mode
+            if ac.mode is not ac.ON:
+
+                # Turn AC on
                 ac.on()
 
-    # AC should be On
-    elif ac.mode == 2:
-        if not ac.value:
-            ac.on()
-
-    time.sleep(10)
+    # Wait before polling devices
+    time.sleep(poll_interval)

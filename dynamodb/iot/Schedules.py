@@ -1,5 +1,5 @@
 from dynamodb import DynamoTable
-import boto3
+from boto3.dynamodb.conditions import Key, Attr
 
 
 class Schedules(DynamoTable):
@@ -9,4 +9,8 @@ class Schedules(DynamoTable):
 
     def __init__(self):
         super(Schedules, self).__init__('iot.schedules')
-        # DynamoTable.__init__(self, 'iot.schedules')
+
+    def today(self, group):
+        return sorted(self.table.scan(
+            FilterExpression=Attr('group').eq(group)
+        )['Items'], key=lambda k: ['time'])

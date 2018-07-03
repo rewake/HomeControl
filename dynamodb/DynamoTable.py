@@ -23,5 +23,5 @@ class DynamoTable(object):
         print "Scanning by attribute: " + attr + " = " + group
 
         return self.table.scan(
-            FilterExpression=Attr(attr).eq(group) and Attr('mode').eq(0)
+            FilterExpression=Attr(attr).eq(group)
         )['Items']

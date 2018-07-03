@@ -33,12 +33,17 @@ class AirConditioner(OutputDevice):
         logging.debug("Turning AC Off")
         super(AirConditioner, self).off()
 
+    def auto(self):
+
+        logging.debug("Turning AC Off")
+        super(AirConditioner, self).off()
+
     def set_mode(self, mode=None):
 
         if mode is not None:
 
-            logging.debug("Setting mode to: " + self.mode)
+            logging.debug("Setting mode to: " + str(self.mode))
             self.mode = mode
 
-        logging.debug("Current mode is: " + self.mode)
+        logging.debug("Current mode is: " + str(self.mode))
         return self.mode
