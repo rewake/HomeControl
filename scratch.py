@@ -17,17 +17,13 @@ ac = AirConditioner(14)
 ts = TempSensor()
 
 # Initial configuration values
-globals()['mode'] = int(ac.value)
+ac.mode = int(ac.value)
 globals()['temp'] = 72
 
-globals()['modes'] = {
-    0: "Off",
-    1: "Auto",
-    2: "Always On"
-}
 
 # TODO: pull schedule just for today
 globals()['schedule'] = sorted(Schedules().get_by_attribute('group', 'ac'), key=lambda k: ['time'])
+
 
 '''
 NOTES / TODOs
@@ -42,27 +38,24 @@ need to think about invalidating loaded schedule
 '''
 
 
-# def set_mode(mode):
-#     globals()['mode'] = mode
-
-
 def set_temp(temp):
     print "Setting temp to: " + str(temp)
     globals()['temp'] = temp
 
 
 def cycle_mode():
+
     # Off to Auto
-    if globals()['mode'] == 0:
-        ac.set_mode(1)
+    if ac.mode == 0:
+        ac.set_mode(ac.AUTO)
 
     # Auto to On
-    elif globals()['mode'] == 1:
-        ac.set_mode(2)
+    elif ac.mode == 1:
+        ac.set_mode(ac.ON)
 
     # On to Off
-    elif globals()['mode'] == 2:
-        ac.set_mode(0)
+    elif ac.mode == 2:
+        ac.set_mode(ac.OFF)
 
     print "AC Mode: " + ac.mode
 
@@ -76,7 +69,7 @@ def determine_desired_settings():
         d = datetime.datetime.combine(datetime.datetime.today(), schedule_time)
 
         # Set new values to current values, to be overwritten if necessary
-        new_mode = globals()['mode']
+        new_mode = ac.mode
         new_temp = globals()['temp']
 
         # Determine desired mode
